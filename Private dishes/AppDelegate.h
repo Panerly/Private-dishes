@@ -7,6 +7,7 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "JJPopoverView.h"
 
 @interface AppDelegate : UIResponder <UIApplicationDelegate>
 
