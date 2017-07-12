@@ -101,7 +101,7 @@ UISearchBarDelegate
     _flowLayout.minimumInteritemSpacing = 10;
     
     // 设置每个item的大小
-    _flowLayout.itemSize = CGSizeMake(PanScreenWidth/3-PanScreenWidth/17, PanScreenWidth/3);
+    _flowLayout.itemSize = CGSizeMake(PanScreenWidth/3-20, PanScreenWidth/3);
     
     // 设置最小行间距
     _flowLayout.minimumLineSpacing = 15;
@@ -113,7 +113,7 @@ UISearchBarDelegate
     _flowLayout.scrollDirection = UICollectionViewScrollDirectionVertical;
     
     // 创建CollectionView
-    UICollectionView *collectionView = [[UICollectionView alloc] initWithFrame:CGRectMake(0, 64, self.view.frame.size.width, self.view.frame.size.height-64) collectionViewLayout:_flowLayout];
+    UICollectionView *collectionView = [[UICollectionView alloc] initWithFrame:CGRectMake(0, 64, PanScreenWidth, PanScreenHeight-64) collectionViewLayout:_flowLayout];
     collectionView.backgroundColor = [UIColor clearColor];
     collectionView.dataSource = self;
     collectionView.delegate   = self;
