@@ -24,4 +24,8 @@
 @property (nonatomic, copy) NSString *ingredients;    //材料
 @property (nonatomic, copy) NSString *sumary;         //点评总结
 
+@property (nonatomic, copy) NSString *menuId;         //菜单id
+
+@property (nonatomic, assign) BOOL flag;              //用于判断是否已经加载数据
+
 @end

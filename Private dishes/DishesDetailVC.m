@@ -12,6 +12,9 @@
 #import "YYTextExampleHelper.h"
 #import "UIImage+YYWebImage.h"
 #import "NSString+YYAdd.h"
+#import "DishesModel.h"
+
+#import "LEECoolButton.h"
 
 
 @interface DishesDetailVC ()
@@ -19,11 +22,14 @@
     UIButton *backBtn;
     UIImage *thumbnailImage;
     UIImageView *loadingImgView;
+    NSURLSessionTask *task;
 }
 @property (nonatomic, strong) YYTextView *textView;
 @property (nonatomic, strong) NSMutableArray *imgArr;
 @property (nonatomic, strong) NSMutableArray *stepArr;
 @property (strong, nonatomic) UIActivityIndicatorView *activityIndicator ;
+@property (nonatomic, strong) FMDatabase *db;
+@property (nonatomic, strong) NSMutableArray *dishesArr;
 
 @end
 
@@ -42,6 +48,14 @@
     }
     return _stepArr;
 }
+- (NSMutableArray *)dishesArr {
+    if (!_dishesArr) {
+        
+        _dishesArr = [NSMutableArray array];
+    }
+    return _dishesArr;
+}
+
 
 - (YYTextView *)textView {
     
@@ -58,29 +72,82 @@
     
     [YYTextExampleHelper addDebugOptionToViewController:self];
     
-    NSDictionary *methodDic = [self dictionaryWithJsonString:self.method];
-    
-    for (NSDictionary *dic in methodDic) {
+    if (self.flag) {
         
-        [self.stepArr addObject:[dic objectForKey:@"step"]];
-        [self.imgArr addObject:[dic objectForKey:@"img"]?[dic objectForKey:@"img"]:@""];
+        NSDictionary *methodDic = [self dictionaryWithJsonString:self.method];
+        
+        for (NSDictionary *dic in methodDic) {
+            
+            [self.stepArr addObject:[dic objectForKey:@"step"]];
+            [self.imgArr addObject:[dic objectForKey:@"img"]?[dic objectForKey:@"img"]:@""];
+        }
     }
-
+    
     [self initTitleView];
 }
 
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
     
-    [self setupTextView];
+    if (_flag) {
+        
+        [self setupTextView];
+        NSString *doc = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];;
+        NSString *fileName = [doc stringByAppendingPathComponent:@"dishes.sqlite"];
+        _db = [FMDatabase databaseWithPath:fileName];
+        
+        if ([_db open]) {
+            
+            
+            FMResultSet *resultSet = [self.db executeQuery:@"select * from dishesTable order by id"];
+            
+            NSString *nameString;
+            while ([resultSet next]) {
+                
+                nameString  = [resultSet stringForColumn:@"name"];
+                
+            }
+            if (![nameString isEqualToString:self.name]) {
+                
+                
+                [self setupFaveriteBtn];
+            }
+            
+            [_db close];
+            
+        }
+    }else {//
+        
+        [self _requestData:self.menuId];
+    }
+    
+    
 }
 
+- (void)viewDidDisappear:(BOOL)animated {
+    [super viewDidDisappear:animated];
+    
+    [task cancel];
+}
+
+- (void)setupFaveriteBtn {
+    
+    //星星按钮
+    
+    LEECoolButton *starButton = [LEECoolButton coolButtonWithImage:[UIImage imageNamed:@"star"] ImageFrame:CGRectMake(10, 10, 40, 40)];
+    
+    starButton.frame = CGRectMake(PanScreenWidth - 60, PanScreenHeight - 60, 80, 80);
+    
+    [starButton addTarget:self action:@selector(starButtonAction:) forControlEvents:UIControlEventTouchUpInside];
+    
+    [self.view addSubview:starButton];
+}
 
 - (void)initTitleView {
     
     _titleView                  = [[TitleView alloc]initWithFrame:CGRectMake(0, 0, PanScreenWidth, 64)];
     _titleView.backgroundColor  = COLORRGB(63, 143, 249);
-    _titleView.title            = [NSString stringWithFormat:@"☆ %@ ☆　", self.titleStr];
+    _titleView.title            = [NSString stringWithFormat:@"☆ %@ ☆　", _titleStr];
     _titleView.isTranslucent    = NO;
     _titleView.isLeftBtnRotation = YES;
     
@@ -97,9 +164,10 @@
     
     [self.activityIndicator startAnimating];
     
+    
     loadingImgView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 100, 100)];
     [loadingImgView setImage:[UIImage sd_animatedGIFNamed:@"loading"]];
-    loadingImgView.center = self.view.center;
+    loadingImgView.center = self.textView.center;
     [self.view insertSubview:loadingImgView aboveSubview:self.textView];
     
     _titleView.rightBarButton = (UIButton *)self.activityIndicator;
@@ -175,11 +243,12 @@
                             } completion:^(BOOL finished) {
                                 
                                 [loadingImgView removeFromSuperview];
+                                
                             }];
+                            [weakSelf showMessage:@"加载完成"];
                             [weakSelf.activityIndicator stopAnimating];
                         }];
     
-//    UIImage *image = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:self.thumbnail]]];
     
     UIFont *font = [UIFont systemFontOfSize:16];
     attachment = [NSMutableAttributedString yy_attachmentStringWithContent:thumbnailImage contentMode:UIViewContentModeCenter attachmentSize:CGSizeMake(PanScreenWidth, 100) alignToFont:font alignment:YYTextVerticalAlignmentCenter];
@@ -322,8 +391,101 @@
     
     self.textView.attributedText = string;
     self.textView.editable = NO;
+    self.textView.showsVerticalScrollIndicator = NO;
+    
+    
 }
 
+
+- (void)starButtonAction:(LEECoolButton *)sender{
+    
+    if (sender.selected) {
+        //未选中状态
+        [sender deselect];
+        [self saveToLocalDB:NO];
+    } else {
+        //选中状态
+        [sender select];
+        [self saveToLocalDB:YES];
+    }
+}
+
+- (void)saveToLocalDB :(BOOL)isFavorite {
+    
+    
+    SDWebImageManager *manager = [SDWebImageManager sharedManager];
+    
+    thumbnailImage = [UIImage new];
+    
+    [manager downloadImageWithURL:[NSURL URLWithString:self.thumbnail]
+                          options:0
+                         progress:^(NSInteger receivedSize, NSInteger expectedSize) {
+                             
+                         }
+                        completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType, BOOL finished, NSURL *imageURL) {
+                            
+                            if (image) {
+                                // do something with image
+                                thumbnailImage = image;
+                            }
+                        }];
+
+    
+    NSString *doc = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];;
+    NSString *fileName = [doc stringByAppendingPathComponent:@"dishes.sqlite"];
+    _db = [FMDatabase databaseWithPath:fileName];
+    
+    if (isFavorite) {//收藏进本地数据库
+        
+        NSData *imgData = UIImageJPEGRepresentation(thumbnailImage, 1);
+        if ([_db open]) {
+            
+            
+            FMResultSet *resultSet = [self.db executeQuery:@"select * from dishesTable order by id"];
+            
+            NSString *nameString;
+            while ([resultSet next]) {
+                
+                nameString  = [resultSet stringForColumn:@"name"];
+                
+            }
+            if ([nameString isEqualToString:self.name]) {
+                
+                UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"已经收藏过了哟(⊙ω⊙)" message:nil preferredStyle:UIAlertControllerStyleAlert];
+                UIAlertAction *action = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
+                    
+                }];
+                [alert addAction:action];
+                [self presentViewController:alert animated:YES completion:^{
+                    
+                }];
+            }else {
+                
+                [self.db executeUpdate:@"create table if not exists dishesTable (id integer primary key autoincrement, name text null,  img text null, menuId text null, titleStr text null);"];
+                [self.db executeUpdate:@"insert into dishesTable (name, img, menuId, titleStr) values (?,?,?,?);",self.name, imgData, self.menuId, self.titleView.title];
+                [self showMessage:@"已收藏"];
+            }
+            
+            [_db close];
+            
+        }
+    }else {//从本地数据库删除
+        
+        if ([_db open]) {
+            
+            [self.db executeUpdate:@"create table if not exists dishesTable (id integer primary key autoincrement, name text null,  image text null);"];
+            [self.db executeUpdate:@"delete from dishesTable where name = '%@'",self.name];
+            [self.db executeUpdate:@"delete from dishesTable where menuId = '%@'",self.menuId];
+            [self.db executeUpdate:@"delete from dishesTable where titleStr = '%@'",self.titleView.title];
+            [_db executeUpdate:[NSString stringWithFormat:@"delete from dishesTable where img = '%@'",thumbnailImage]];
+            
+            [_db close];
+            [self showMessage:@"已取消收藏"];
+        }
+    }
+}
+
+//添加转行
 - (NSAttributedString *)padding {
     
     NSMutableAttributedString *pad = [[NSMutableAttributedString alloc] initWithString:@"\n\n"];
@@ -332,7 +494,7 @@
     
     return pad;
 }
-
+//字符串转化成字典
 - (NSDictionary *)dictionaryWithJsonString:(NSString *)jsonString {
    
     if (jsonString == nil) {
@@ -386,6 +548,157 @@
     
     
     [self.activityIndicator stopAnimating];
+}
+
+- (void)showMessage:(NSString *)msg {
+    
+    CGFloat padding = 10;
+    
+    YYLabel *label = [YYLabel new];
+    label.text = msg;
+    label.font = [UIFont systemFontOfSize:16];
+    label.textAlignment = NSTextAlignmentCenter;
+    label.textColor = [UIColor whiteColor];
+    label.backgroundColor = [UIColor colorWithRed:0.033 green:0.685 blue:0.978 alpha:0.730];
+    label.width = self.view.width;
+    label.textContainerInset = UIEdgeInsetsMake(padding, padding, padding, padding);
+    label.height = [msg heightForFont:label.font width:label.width] + 2 * padding;
+    
+    label.bottom = (kiOS7Later ? 64 : 0);
+//    [self.view addSubview:label];
+    [self.view insertSubview:label belowSubview:self.titleView];
+    [UIView animateWithDuration:0.3 animations:^{
+        label.top = (kiOS7Later ? 64 : 0);
+    } completion:^(BOOL finished) {
+        [UIView animateWithDuration:0.2 delay:2 options:UIViewAnimationOptionCurveEaseInOut animations:^{
+            label.bottom = (kiOS7Later ? 64 : 0);
+        } completion:^(BOOL finished) {
+            [label removeFromSuperview];
+        }];
+    }];
+}
+
+
+
+- (void)_requestData :(NSString *)menuId {
+    
+    [task cancel];
+    
+    NSString *logInUrl = [NSString stringWithFormat:@"http://apicloud.mob.com/v1/cook/menu/query"];
+    
+    NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
+    
+    AFHTTPSessionManager *manager = [[AFHTTPSessionManager alloc] initWithSessionConfiguration:config];
+    
+    AFHTTPResponseSerializer *serializer = manager.responseSerializer;
+    
+    manager.requestSerializer.timeoutInterval = 8;
+    
+    serializer.acceptableContentTypes         = [serializer.acceptableContentTypes setByAddingObject:@"text/html"];
+    
+    __weak typeof(self) weakSelf = self;
+    
+    NSDictionary *parameter = @{
+                                @"key":@"158556148371e",
+                                @"id":self.menuId
+                                };
+    
+    task =[manager POST:logInUrl parameters:parameter progress:^(NSProgress * _Nonnull uploadProgress) {
+        
+    } success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
+        
+        if (responseObject) {
+            
+            [weakSelf.dishesArr removeAllObjects];
+            
+            if ([[responseObject objectForKey:@"msg"] isEqualToString:@"success"]) {
+                
+                NSMutableDictionary *responseDic = [responseObject objectForKey:@"result"];
+                
+                
+                self.thumbnail = [responseDic objectForKey:@"thumbnail"];
+                self.img = [[responseDic objectForKey:@"recipe"] objectForKey:@"img"];
+                self.ingredients = [[responseDic objectForKey:@"recipe"] objectForKey:@"ingredients"];
+                self.method = [[responseDic objectForKey:@"recipe"] objectForKey:@"method"];
+                self.sumary = [[responseDic objectForKey:@"recipe"] objectForKey:@"sumary"];
+                self.name = [[responseDic objectForKey:@"recipe"] objectForKey:@"title"];;
+        
+                }
+            }else if ([[responseObject objectForKey:@"retCode"] isEqualToString:@"20201"]) {
+                UIAlertAction *confir = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
+                    
+                }];
+                UIAlertController *alertVC = [UIAlertController alertControllerWithTitle:@"提示" message:@"查询不到数据！" preferredStyle:UIAlertControllerStyleAlert];
+                
+                [alertVC addAction:confir];
+                
+                [weakSelf presentViewController:alertVC animated:YES completion:^{
+                    
+                }];
+            }else if ([[responseObject objectForKey:@"retCode"] isEqualToString:@"20202"]) {
+                UIAlertAction *confir = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
+                    
+                }];
+                UIAlertController *alertVC = [UIAlertController alertControllerWithTitle:@"提示" message:@"菜谱id不合法！" preferredStyle:UIAlertControllerStyleAlert];
+                
+                [alertVC addAction:confir];
+                
+                [weakSelf presentViewController:alertVC animated:YES completion:^{
+                    
+                }];
+            }
+        
+        [self setupData];
+        
+    } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+       
+        [weakSelf.activityIndicator stopAnimating];
+        
+        NSLog(@"错误信息：%@",error);
+        
+        UIAlertAction *confir = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
+            
+        }];
+        if (error.code == -1001) {
+            
+            UIAlertController *alertVC = [UIAlertController alertControllerWithTitle:@"提示" message:@"请求超时!" preferredStyle:UIAlertControllerStyleAlert];
+            
+            [alertVC addAction:confir];
+            
+            [weakSelf presentViewController:alertVC animated:YES completion:^{
+                
+            }];
+        }
+        
+        UIAlertController *alertVC = [UIAlertController alertControllerWithTitle:@"提示" message:@"服务器连接失败" preferredStyle:UIAlertControllerStyleAlert];
+        
+        UIAlertAction *action = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
+            
+        }];
+        
+        [alertVC addAction:action];
+        [weakSelf presentViewController:alertVC animated:YES completion:^{
+            
+        }];
+        
+    }];
+    
+    [task resume];
+    
+}
+
+- (void)setupData {
+    
+    
+    NSDictionary *methodDic = [self dictionaryWithJsonString:self.method];
+    
+    for (NSDictionary *dic in methodDic) {
+        
+        [self.stepArr addObject:[dic objectForKey:@"step"]];
+        [self.imgArr addObject:[dic objectForKey:@"img"]?[dic objectForKey:@"img"]:@""];
+    }
+    
+    [self setupTextView];
 }
 
 - (void)didReceiveMemoryWarning {

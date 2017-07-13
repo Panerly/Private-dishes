@@ -18,11 +18,14 @@
                 <rect key="frame" x="0.0" y="0.0" width="253" height="199"/>
                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                 <subviews>
+                    <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="shadow" translatesAutoresizingMaskIntoConstraints="NO" id="cWQ-20-Giw" userLabel="shadowView">
+                        <rect key="frame" x="-2" y="-2" width="253" height="204"/>
+                    </imageView>
                     <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="Umx-Qn-586">
-                        <rect key="frame" x="0.0" y="0.0" width="253" height="199"/>
+                        <rect key="frame" x="0.0" y="0.0" width="243" height="189"/>
                     </imageView>
                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="h8b-v2-4Cr">
-                        <rect key="frame" x="0.0" y="169" width="253" height="30"/>
+                        <rect key="frame" x="0.0" y="159" width="243" height="30"/>
                         <fontDescription key="fontDescription" type="system" pointSize="12"/>
                         <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                         <nil key="highlightedColor"/>
@@ -32,20 +35,28 @@
             <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
             <constraints>
                 <constraint firstItem="Umx-Qn-586" firstAttribute="leading" secondItem="gTV-IL-0wX" secondAttribute="leading" id="0FZ-8n-plQ"/>
+                <constraint firstItem="cWQ-20-Giw" firstAttribute="top" secondItem="gTV-IL-0wX" secondAttribute="top" constant="-2" id="0jz-KG-ZxE"/>
                 <constraint firstItem="h8b-v2-4Cr" firstAttribute="top" secondItem="Umx-Qn-586" secondAttribute="bottom" constant="-30" id="Amp-pF-Via"/>
                 <constraint firstItem="Umx-Qn-586" firstAttribute="top" secondItem="gTV-IL-0wX" secondAttribute="top" id="IKB-Wg-lxK"/>
-                <constraint firstAttribute="trailing" secondItem="Umx-Qn-586" secondAttribute="trailing" id="KnP-vp-hw6"/>
-                <constraint firstAttribute="trailing" secondItem="h8b-v2-4Cr" secondAttribute="trailing" id="T58-Ei-IJU"/>
-                <constraint firstAttribute="bottom" secondItem="Umx-Qn-586" secondAttribute="bottom" id="nMG-GO-Zx4"/>
+                <constraint firstAttribute="trailing" secondItem="Umx-Qn-586" secondAttribute="trailing" constant="10" id="KnP-vp-hw6"/>
+                <constraint firstAttribute="trailing" secondItem="cWQ-20-Giw" secondAttribute="trailing" constant="2" id="QsY-0N-M2B"/>
+                <constraint firstAttribute="bottom" secondItem="cWQ-20-Giw" secondAttribute="bottom" constant="-3" id="Rw3-W3-kZW"/>
+                <constraint firstAttribute="trailing" secondItem="h8b-v2-4Cr" secondAttribute="trailing" constant="10" id="T58-Ei-IJU"/>
+                <constraint firstAttribute="bottom" secondItem="Umx-Qn-586" secondAttribute="bottom" constant="10" id="nMG-GO-Zx4"/>
+                <constraint firstItem="cWQ-20-Giw" firstAttribute="leading" secondItem="gTV-IL-0wX" secondAttribute="leading" constant="-2" id="phU-Fy-DB0"/>
                 <constraint firstItem="h8b-v2-4Cr" firstAttribute="leading" secondItem="gTV-IL-0wX" secondAttribute="leading" id="rl2-9M-3cy"/>
-                <constraint firstAttribute="bottom" secondItem="h8b-v2-4Cr" secondAttribute="bottom" id="xCE-ae-09R"/>
+                <constraint firstAttribute="bottom" secondItem="h8b-v2-4Cr" secondAttribute="bottom" constant="10" id="xCE-ae-09R"/>
             </constraints>
             <size key="customSize" width="253" height="199"/>
             <connections>
                 <outlet property="dishesImg" destination="Umx-Qn-586" id="xOU-oC-chT"/>
                 <outlet property="dishesTitle" destination="h8b-v2-4Cr" id="Gt5-VK-Pxy"/>
+                <outlet property="shadowView" destination="cWQ-20-Giw" id="p7J-zf-2t0"/>
             </connections>
             <point key="canvasLocation" x="1.5" y="-10.5"/>
         </collectionViewCell>
     </objects>
+    <resources>
+        <image name="shadow" width="75" height="50"/>
+    </resources>
 </document>

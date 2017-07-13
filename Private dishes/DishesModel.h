@@ -22,5 +22,6 @@
 @property (nonatomic, strong) NSString<Optional> *sumary;         //点评总结
 @property (nonatomic, strong) NSString<Optional> *ingredients;    //材料
 @property (nonatomic, strong) NSString<Optional> *method;         //方法
+@property (nonatomic, strong) NSString<Optional> *menuId;         //方法
 
 @end

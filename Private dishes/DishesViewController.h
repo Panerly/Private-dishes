@@ -8,7 +8,7 @@
 
 #import <UIKit/UIKit.h>
 
-@interface DishesViewController : UIViewController
 
+@interface DishesViewController : UIViewController
 
 @end

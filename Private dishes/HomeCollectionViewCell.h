@@ -13,6 +13,7 @@
 
 @property (weak, nonatomic) IBOutlet UILabel *dishesTitle;
 @property (weak, nonatomic) IBOutlet UIImageView *dishesImg;
+@property (weak, nonatomic) IBOutlet UIImageView *shadowView;
 
 @property (nonatomic, strong) DishesModel *dishesModel;
 

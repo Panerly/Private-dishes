@@ -81,8 +81,8 @@
     
     self.contentView = contentView;
     _parentView = view;
-    _topView = [[[[UIApplication sharedApplication] keyWindow] subviews] lastObject];
-    
+//    _topView = [[[[UIApplication sharedApplication] keyWindow] subviews] lastObject];
+    _topView = view;
     [self _bindActions];
     [self _setupLayout:point inView:view];
     

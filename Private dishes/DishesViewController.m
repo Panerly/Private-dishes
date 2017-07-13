@@ -17,15 +17,21 @@
 #import "MMDrawerController.h"
 #import "MMDrawerBarButtonItem.h"
 #import "UIViewController+MMDrawerController.h"
+#import "HyRoundMenuView.h"
+#import <AudioToolbox/AudioToolbox.h>
 
 static NSString *const DishCellIdentifier = @"dishesCellIdentifier";
+// 音频文件的ID
+static SystemSoundID shake_sound_male_id = 0;
+
 
 @interface DishesViewController ()
 <
 JJPopoverViewDelegate,
 UICollectionViewDataSource,
 UICollectionViewDelegateFlowLayout,
-UISearchBarDelegate
+UISearchBarDelegate,
+HyRoundMenuViewDelegate
 >
 {
     NSURLSessionTask *task;
@@ -48,6 +54,10 @@ UISearchBarDelegate
 @property (nonatomic, strong) NSMutableArray *searchData;// 保存搜索结果数据的NSArray对象。
 
 @property (nonatomic, strong) UICollectionViewFlowLayout *flowLayout;
+
+@property (nonatomic, strong) HyRoundMenuView *menuView;
+
+@property (nonatomic, strong) NSMutableArray *data;
 
 @end
 
@@ -77,14 +87,48 @@ UISearchBarDelegate
     
     // 第一次刷新手动调用
     [self.collectionView.mj_header beginRefreshing];
+    
+    [self setMenu];
 }
 
-//-(void)setupLeftMenuButton{
-//    
-//    MMDrawerBarButtonItem * leftDrawerButton = [[MMDrawerBarButtonItem alloc] initWithTarget:self action:@selector(leftDrawerButtonPress:)];
-//    [leftDrawerButton setImage:[UIImage imageNamed:@"icon_user"]];
-//    [self.navigationItem setLeftBarButtonItem:leftDrawerButton animated:YES];
-//}
+- (void)viewDidAppear:(BOOL)animated {
+    [super viewDidAppear:animated];
+    
+    self.menuView.hidden = NO;
+}
+
+- (void)setMenu {
+    
+    _menuView = [HyRoundMenuView shareInstance];
+    
+    _data = @[
+              [HyRoundMenuModel title:@"炖"  iconImage:[UIImage imageNamed:@"01"] transitionType:HyRoundMenuModelTransitionTypeMenuEnlarge],
+              [HyRoundMenuModel title:@"蒸"      iconImage:[UIImage imageNamed:@"02"] transitionType:HyRoundMenuModelTransitionTypeNormal],
+              [HyRoundMenuModel title:@"烩"  iconImage:[UIImage imageNamed:@"03"] transitionType:HyRoundMenuModelTransitionTypeMenuEnlarge],
+              [HyRoundMenuModel title:@"熏"        iconImage:[UIImage imageNamed:@"04"] transitionType:HyRoundMenuModelTransitionTypeMenuEnlarge],
+              [HyRoundMenuModel title:@"卤"   iconImage:[UIImage imageNamed:@"05"] transitionType:HyRoundMenuModelTransitionTypeMenuEnlarge],
+              [HyRoundMenuModel title:@"红烧"       iconImage:[UIImage imageNamed:@"06"] transitionType:HyRoundMenuModelTransitionTypeMenuEnlarge],
+              [HyRoundMenuModel title:@"焖"       iconImage:[UIImage imageNamed:@"07"] transitionType:HyRoundMenuModelTransitionTypeMenuEnlarge],
+              [HyRoundMenuModel title:@"炒"       iconImage:[UIImage imageNamed:@"08"] transitionType:HyRoundMenuModelTransitionTypeMenuEnlarge],
+              [HyRoundMenuModel title:@"煎"       iconImage:[UIImage imageNamed:@"09"] transitionType:HyRoundMenuModelTransitionTypeMenuEnlarge],
+              [HyRoundMenuModel title:@"炸"       iconImage:[UIImage imageNamed:@"10"] transitionType:HyRoundMenuModelTransitionTypeMenuEnlarge]
+              ].mutableCopy;
+    
+    _menuView.bigRadius   = 120.0f;
+    _menuView.smallRadius = 30.0f;
+    HyRoundMenuModel *centerModel = [HyRoundMenuModel title:@"please select way to cook" iconImage:[UIImage imageNamed:@"float_btn"] transitionType:HyRoundMenuModelTransitionTypeMenuEnlarge];
+    centerModel.type = HyRoundMenuModelItmeTypeCenter;
+    [_data addObject:centerModel];
+    _menuView.dataSources = _data;
+    UIColor *color = [UIColor colorWithRed:23.f/255.f green:107.f/255.f blue:213.f/255.f alpha:1.0f];
+    //UIColor *color2 = [UIColor colorWithWhite:1 alpha:0.2];
+    _menuView.shapeColor = color;
+    
+    _menuView.backgroundViewType = HyRoundMenuViewBackgroundViewTypeBlur;
+    _menuView.customBackgroundViewColor = [UIColor colorWithWhite:0 alpha:0.7];
+    
+    _menuView.delegate = self;
+}
 #pragma mark - Button Handlers
 -(void)leftDrawerButtonPress:(id)sender{
     
@@ -133,13 +177,13 @@ UISearchBarDelegate
     customSearchBar.delegate = self;
     customSearchBar.showsCancelButton = NO;
     customSearchBar.searchBarStyle = UISearchBarStyleMinimal;
-    customSearchBar.placeholder = @"search any dishes";
+    customSearchBar.placeholder = @"search any ingredients";
     
     [self.navigationController.view addSubview: customSearchBar];
     
     //设置刷新view
     loading        = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 80, 80)];
-    loading.center = self.view.center;
+    loading.center = self.collectionView.center;
     UIImage *image = [UIImage sd_animatedGIFNamed:@"loading"];
     [loading setImage:image];
     [self.view insertSubview:loading aboveSubview:self.collectionView];
@@ -158,7 +202,8 @@ NSString *defaultname = @"烧烤";//默认烧烤
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             
             NSLog(@"当前请求的页数：%ld",pageNum);
-            [weakSelf _requestSomeData:20:defaultname:NO];
+            pageNum = 40;
+            [weakSelf _requestSomeData:40:defaultname:NO];
         });
     }];
     
@@ -166,7 +211,7 @@ NSString *defaultname = @"烧烤";//默认烧烤
     self.collectionView.mj_footer = [MJRefreshAutoNormalFooter footerWithRefreshingBlock:^{
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             
-            pageNum+=10;
+            pageNum+=20;
             [weakSelf _requestSomeData:pageNum:defaultname:NO];
         });
     }];
@@ -399,15 +444,16 @@ NSString *defaultname = @"烧烤";//默认烧烤
         cell.dishesModel = self.dishes[indexPath.item];
     }
     cell.dishesTitle.backgroundColor = [UIColor colorWithRed:arc4random_uniform(255)/255.0 green:arc4random_uniform(255)/255.0 blue:arc4random_uniform(255)/255.0 alpha:0.4];
-    cell.layer.cornerRadius = 5;
     return cell;
 }
 
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath
 {
     [customSearchBar resignFirstResponder];
+    self.menuView.hidden = YES;
     
     DishesDetailVC *detailVC = [[DishesDetailVC alloc] init];
+    detailVC.flag = YES;
     if (isSearch) {
         
         detailVC.thumbnail = ((DishesModel *)self.searchData[indexPath.row]).thumbnail;
@@ -417,6 +463,7 @@ NSString *defaultname = @"烧烤";//默认烧烤
         detailVC.name = ((DishesModel *)self.searchData[indexPath.row]).title;
         detailVC.ingredients = ((DishesModel *)self.searchData[indexPath.row]).ingredients;
         detailVC.sumary = ((DishesModel *)self.searchData[indexPath.row]).sumary;
+        detailVC.menuId = ((DishesModel *)self.searchData[indexPath.row]).menuId;
     }else {
         
         detailVC.thumbnail = ((DishesModel *)self.dishes[indexPath.row]).thumbnail;
@@ -426,8 +473,10 @@ NSString *defaultname = @"烧烤";//默认烧烤
         detailVC.name = ((DishesModel *)self.dishes[indexPath.row]).title;
         detailVC.ingredients = ((DishesModel *)self.dishes[indexPath.row]).ingredients;
         detailVC.sumary = ((DishesModel *)self.dishes[indexPath.row]).sumary;
+        detailVC.menuId = ((DishesModel *)self.dishes[indexPath.row]).menuId;
     }
-    //[self.navigationController showViewController:detailVC sender:nil];
+    
+
     [self presentViewController:detailVC animated:YES completion:^{
         
     }];
@@ -484,6 +533,7 @@ NSString *defaultname = @"烧烤";//默认烧烤
 }
 
 - (void)showMessage:(NSString *)msg {
+    
     CGFloat padding = 10;
     
     YYLabel *label = [YYLabel new];
@@ -509,11 +559,44 @@ NSString *defaultname = @"烧烤";//默认烧烤
     }];
 }
 
+
+-(void) playSound
+
+{
+    NSString *path = [[NSBundle mainBundle] pathForResource:@"prlm_sound_triggering" ofType:@"wav"];
+    if (path) {
+        //注册声音到系统
+        AudioServicesCreateSystemSoundID((__bridge CFURLRef)[NSURL fileURLWithPath:path],&shake_sound_male_id);
+        AudioServicesPlaySystemSound(shake_sound_male_id);
+        //        AudioServicesPlaySystemSound(shake_sound_male_id);//如果无法再下面播放，可以尝试在此播放
+    }
+    
+    AudioServicesPlaySystemSound(shake_sound_male_id);   //播放注册的声音，（此句代码，可以在本类中的任意位置调用，不限于本方法中）
+    
+    //    AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);   //让手机震动
+}
+static HyRoundMenuModel *tempModel = nil;
+- (void)roundMenuView:(HyRoundMenuView* __nonnull)roundMenuView dragAfterModel:(HyRoundMenuModel* __nonnull)model
+{
+    [self playSound];
+}
+
+- (void)roundMenuView:(HyRoundMenuView* __nonnull)roundMenuView didSelectRoundMenuModel:(HyRoundMenuModel* __nonnull)model
+{
+
+    defaultname = model.title;
+    [self _requestSomeData:pageNum :model.title :NO];
+}
+
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
 }
 
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    
+    [customSearchBar resignFirstResponder];
+}
 
 /*
 #pragma mark - Navigation

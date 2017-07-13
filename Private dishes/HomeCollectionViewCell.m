@@ -21,7 +21,15 @@
 - (void)setDishesModel:(DishesModel *)dishesModel {
     
     //1.图片
-    [self.dishesImg sd_setImageWithURL:[NSURL URLWithString:dishesModel.thumbnail] placeholderImage:[UIImage imageNamed:@"lost2"]];
+    self.shadowView.hidden = YES;
+    [self.dishesImg sd_setImageWithURL:[NSURL URLWithString:dishesModel.thumbnail] placeholderImage:[UIImage imageNamed:@"lost2"] completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType, NSURL *imageURL) {
+        
+        if (image) {
+            
+            self.shadowView.hidden = NO;
+        }
+    }];
+    
     //2.菜名
     self.dishesTitle.text = dishesModel.name;
 }

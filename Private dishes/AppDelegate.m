@@ -39,7 +39,10 @@
     [drawerController setMaximumRightDrawerWidth:200.0];
     
     [drawerController setOpenDrawerGestureModeMask:MMOpenDrawerGestureModePanningCenterView];
-    [drawerController setCloseDrawerGestureModeMask:MMCloseDrawerGestureModeAll];
+    [drawerController setCloseDrawerGestureModeMask:
+     MMCloseDrawerGestureModePanningCenterView       |
+     MMCloseDrawerGestureModeBezelPanningCenterView  |
+     MMCloseDrawerGestureModeTapCenterView];
     
     self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
     
