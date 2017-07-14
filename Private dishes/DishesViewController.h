@@ -11,4 +11,6 @@
 
 @interface DishesViewController : UIViewController
 
+@property (nonatomic, strong) UIVisualEffectView *visualEffectView;
+
 @end

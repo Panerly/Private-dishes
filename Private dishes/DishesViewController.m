@@ -31,7 +31,8 @@ JJPopoverViewDelegate,
 UICollectionViewDataSource,
 UICollectionViewDelegateFlowLayout,
 UISearchBarDelegate,
-HyRoundMenuViewDelegate
+HyRoundMenuViewDelegate,
+UIViewControllerPreviewingDelegate
 >
 {
     NSURLSessionTask *task;
@@ -43,7 +44,7 @@ HyRoundMenuViewDelegate
 }
 
 /** 所有的美食数据 */
-@property (nonatomic, strong) NSMutableArray *dishes;
+@property (nonatomic, strong) NSMutableArray *searchData;// 保存搜索结果数据的NSArray对象。
 
 @property (nonatomic, weak) JJPopoverView *popover;
 
@@ -51,7 +52,6 @@ HyRoundMenuViewDelegate
 
 @property (nonatomic, weak) UICollectionView *collectionView;
 
-@property (nonatomic, strong) NSMutableArray *searchData;// 保存搜索结果数据的NSArray对象。
 
 @property (nonatomic, strong) UICollectionViewFlowLayout *flowLayout;
 
@@ -63,12 +63,6 @@ HyRoundMenuViewDelegate
 
 @implementation DishesViewController
 
-- (NSMutableArray *)dishes {
-    if (!_dishes) {
-        _dishes = [NSMutableArray array];
-    }
-    return _dishes;
-}
 - (NSMutableArray *)searchData {
     if (!_searchData) {
         _searchData = [NSMutableArray array];
@@ -89,12 +83,39 @@ HyRoundMenuViewDelegate
     [self.collectionView.mj_header beginRefreshing];
     
     [self setMenu];
+    
+    //检测是否支持3D Touch...
+    if (self.traitCollection.forceTouchCapability == UIForceTouchCapabilityAvailable) {
+        
+        //注册
+        [self registerForPreviewingWithDelegate:self sourceView:self.view];
+    }
+    
+    [self setupEffectView];
+}
+
+- (void)setupEffectView{
+    
+    UIBlurEffect *effect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleLight];
+    self.visualEffectView = [[UIVisualEffectView alloc] initWithEffect:effect];
+    self.visualEffectView.frame = CGRectMake(0, 64, PanScreenWidth, PanScreenHeight - 64);
+    [self.view addSubview:self.visualEffectView];
+    self.visualEffectView.alpha = 0;
+    
+    //监听键盘弹出的方式
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(popKeyBoard:) name:UIKeyboardWillShowNotification object:nil];
 }
 
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
     
     self.menuView.hidden = NO;
+}
+
+- (void)viewDidDisappear:(BOOL)animated {
+    [super viewDidDisappear:animated];
+    
+    self.menuView.hidden = YES;
 }
 
 - (void)setMenu {
@@ -120,7 +141,7 @@ HyRoundMenuViewDelegate
     centerModel.type = HyRoundMenuModelItmeTypeCenter;
     [_data addObject:centerModel];
     _menuView.dataSources = _data;
-    UIColor *color = [UIColor colorWithRed:23.f/255.f green:107.f/255.f blue:213.f/255.f alpha:1.0f];
+    UIColor *color = [UIColor colorWithRed:18.f/255.f green:58.f/255.f blue:53.f/255.f alpha:1.0f];
     //UIColor *color2 = [UIColor colorWithWhite:1 alpha:0.2];
     _menuView.shapeColor = color;
     
@@ -219,6 +240,7 @@ NSString *defaultname = @"烧烤";//默认烧烤
     self.collectionView.mj_footer.hidden = NO;
 }
 
+#pragma mark - requestdata请求主页数据
 - (void)_requestSomeData:(NSUInteger)page :(NSString *)name :(BOOL)isSerarch{
     
     loading.hidden = NO;
@@ -255,14 +277,7 @@ NSString *defaultname = @"烧烤";//默认烧烤
             
             NSError *error = nil;
             
-            if (isSearch) {
-                
-                [weakSelf.searchData removeAllObjects];
-            } else {
-                
-                [weakSelf.dishes removeAllObjects];
-            }
-            [weakSelf.dishes removeAllObjects];
+            [weakSelf.searchData removeAllObjects];
             
             if ([[responseObject objectForKey:@"msg"] isEqualToString:@"success"]) {
                 
@@ -285,13 +300,8 @@ NSString *defaultname = @"烧烤";//默认烧烤
                     
                     dishesModel.sumary = [[dic objectForKey:@"recipe"] objectForKey:@"sumary"]?[[dic objectForKey:@"recipe"] objectForKey:@"sumary"]:@"...";
                     
-                    if (isSearch) {
-                        
-                        [weakSelf.searchData addObject:dishesModel];
-                    }else {
-                        
-                        [weakSelf.dishes addObject:dishesModel];
-                    }
+                    [weakSelf.searchData addObject:dishesModel];
+                    
                 }
             }else if ([[responseObject objectForKey:@"retCode"] isEqualToString:@"20201"]) {
                 UIAlertAction *confir = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
@@ -307,7 +317,13 @@ NSString *defaultname = @"烧烤";//默认烧烤
             }
             [weakSelf.collectionView reloadSections:[NSIndexSet indexSetWithIndex:0]];
         }
-        [weakSelf showMessage:@"美食加载完成喽 ^o^"];
+        
+        if (weakSelf.searchData.count<1) {
+            [weakSelf showMessage:@"暂无此种美食分类数据"];
+        }else {
+            [weakSelf showMessage:@"美食加载完成喽 ^o^"];
+        }
+
         loading.hidden = YES;
         [weakSelf.collectionView.mj_header endRefreshing];
         [weakSelf.collectionView.mj_footer endRefreshing];
@@ -407,42 +423,25 @@ NSString *defaultname = @"烧烤";//默认烧烤
 {
     
     
-    // 如果处于搜索状态
-    if(isSearch){
-        
-        if (self.searchData.count == [totalCount integerValue]) {
-            self.collectionView.mj_footer.hidden = YES;
-        }else {
-            self.collectionView.mj_footer.hidden = NO;
-        }
-        // 使用searchData显示数据
-        return self.searchData.count;
+    if (self.searchData.count == [totalCount integerValue]) {
+        self.collectionView.mj_footer.hidden = YES;
     }else {
-        
-        if (self.dishes.count == [totalCount integerValue]) {
-            self.collectionView.mj_footer.hidden = YES;
-        }else {
-            self.collectionView.mj_footer.hidden = NO;
-        }
-        // 否则使用原始的dishes显示数据
-        return self.dishes.count;
+        self.collectionView.mj_footer.hidden = NO;
     }
+    // 使用searchData显示数据
+    return self.searchData.count;
 }
 
 - (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath{
     HomeCollectionViewCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:DishCellIdentifier forIndexPath:indexPath];
     if (!cell) {
         cell = [[[NSBundle mainBundle] loadNibNamed:@"HomeCollectionViewCell" owner:self options:nil]lastObject];
+        //注册Peek高亮来源***
+        [self registerForPreviewingWithDelegate:self sourceView:cell];
     }
-    if(isSearch)
-    {
-        // 使用searchData显示数据
-        cell.dishesModel = [_searchData objectAtIndex:indexPath.row];
-    }
-    else{
-        // 否则使用原始的dishes显示数据
-        cell.dishesModel = self.dishes[indexPath.item];
-    }
+    // 使用searchData显示数据
+    cell.dishesModel = [_searchData objectAtIndex:indexPath.row];
+    
     cell.dishesTitle.backgroundColor = [UIColor colorWithRed:arc4random_uniform(255)/255.0 green:arc4random_uniform(255)/255.0 blue:arc4random_uniform(255)/255.0 alpha:0.4];
     return cell;
 }
@@ -454,28 +453,14 @@ NSString *defaultname = @"烧烤";//默认烧烤
     
     DishesDetailVC *detailVC = [[DishesDetailVC alloc] init];
     detailVC.flag = YES;
-    if (isSearch) {
-        
-        detailVC.thumbnail = ((DishesModel *)self.searchData[indexPath.row]).thumbnail;
-        detailVC.img = ((DishesModel *)self.searchData[indexPath.row]).img;
-        detailVC.titleStr = ((DishesModel *)self.searchData[indexPath.row]).name;
-        detailVC.method = ((DishesModel *)self.searchData[indexPath.row]).method;
-        detailVC.name = ((DishesModel *)self.searchData[indexPath.row]).title;
-        detailVC.ingredients = ((DishesModel *)self.searchData[indexPath.row]).ingredients;
-        detailVC.sumary = ((DishesModel *)self.searchData[indexPath.row]).sumary;
-        detailVC.menuId = ((DishesModel *)self.searchData[indexPath.row]).menuId;
-    }else {
-        
-        detailVC.thumbnail = ((DishesModel *)self.dishes[indexPath.row]).thumbnail;
-        detailVC.img = ((DishesModel *)self.dishes[indexPath.row]).img;
-        detailVC.titleStr = ((DishesModel *)self.dishes[indexPath.row]).name;
-        detailVC.method = ((DishesModel *)self.dishes[indexPath.row]).method;
-        detailVC.name = ((DishesModel *)self.dishes[indexPath.row]).title;
-        detailVC.ingredients = ((DishesModel *)self.dishes[indexPath.row]).ingredients;
-        detailVC.sumary = ((DishesModel *)self.dishes[indexPath.row]).sumary;
-        detailVC.menuId = ((DishesModel *)self.dishes[indexPath.row]).menuId;
-    }
-    
+    detailVC.thumbnail = ((DishesModel *)self.searchData[indexPath.row]).thumbnail;
+    detailVC.img = ((DishesModel *)self.searchData[indexPath.row]).img;
+    detailVC.titleStr = ((DishesModel *)self.searchData[indexPath.row]).name;
+    detailVC.method = ((DishesModel *)self.searchData[indexPath.row]).method;
+    detailVC.name = ((DishesModel *)self.searchData[indexPath.row]).title;
+    detailVC.ingredients = ((DishesModel *)self.searchData[indexPath.row]).ingredients;
+    detailVC.sumary = ((DishesModel *)self.searchData[indexPath.row]).sumary;
+    detailVC.menuId = ((DishesModel *)self.searchData[indexPath.row]).menuId;
 
     [self presentViewController:detailVC animated:YES completion:^{
         
@@ -509,8 +494,18 @@ NSString *defaultname = @"烧烤";//默认烧烤
     NSLog(@"----searchBarSearchButtonClicked------");
     // 调用filterBySubstring:方法执行搜索
     [self filterBySubstring:searchBar.text];
+    
+    
+    [UIView animateWithDuration:.5 animations:^{
+        
+        self.visualEffectView.alpha = 0;
+    } completion:^(BOOL finished) {
+        
+    }];
+    
     // 放弃作为第一个响应者，关闭键盘
     [searchBar resignFirstResponder];
+    isSearch = NO;
 }
 
 - (void) filterBySubstring:(NSString*) subStr
@@ -528,7 +523,10 @@ NSString *defaultname = @"烧烤";//默认烧烤
     defaultname = subStr;
     [self _requestSomeData:pageNum :subStr:YES];
 }
-- (void)scrollViewDidScroll:(UIScrollView *)scrollView {
+
+
+- (void)scrollViewDidEndScrollingAnimation:(UIScrollView *)scrollView {
+    
     [customSearchBar resignFirstResponder];
 }
 
@@ -594,8 +592,95 @@ static HyRoundMenuModel *tempModel = nil;
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    [UIView animateWithDuration:.5 animations:^{
+        
+        self.visualEffectView.alpha = 0;
+    } completion:^(BOOL finished) {
+        
+    }];
+    [customSearchBar resignFirstResponder];
+}
+
+#pragma mark - 3d presress isuess
+
+//peek(预览)
+- (nullable UIViewController *)previewingContext:(id <UIViewControllerPreviewing>)previewingContext viewControllerForLocation:(CGPoint)location
+{
+ 
+    
+    /*
+     guard let indexPath = tableView.indexPathForRow(at: location) else { return nil }
+     guard let cell = tableView.cellForRow(at: indexPath) as? DiscoveryComponent else { return nil }
+     let collectionView = cell.collectionView
+     print("---- CollectionView \(collectionView)----")
+     let collectionPoint = collectionView.convert(location, from: tableView)
+     guard let collectionIndexPath = collectionView.indexPathForItem(at: collectionPoint) else { return nil }
+     guard let collectionViewCell = collectionView.cellForItem(at: collectionIndexPath) as? DiscoveryProductCell else { return nil }
+     print(collectionIndexPath)
+     */
+    
+    
+    //method 1
+//    NSIndexPath *indexPath = [self.collectionView indexPathForCell:(HomeCollectionViewCell *)[previewingContext sourceView]];
+    
+    
+    
+    
+    //method 2
+    // 将collectionView在控制器view的中心点转化成collectionView上的坐标
+    CGPoint pInView = [self.view convertPoint:location toView:self.collectionView];
+    // 获取这一点的indexPath
+    NSIndexPath *indexPath = [self.collectionView indexPathForItemAtPoint:pInView];
+    
+    
+    
+//    //method 3
+//    NSIndexPath *indexPath = [self.collectionView indexPathForItemAtPoint:location];
+    
+    
+    
+    //设定预览的界面
+    DishesDetailVC *childVC = [[DishesDetailVC alloc] init];
+    childVC.preferredContentSize = CGSizeMake(0.0f,500.0f);
     
     [customSearchBar resignFirstResponder];
+    
+    childVC.flag = YES;
+    
+    childVC.thumbnail = ((DishesModel *)self.searchData[indexPath.row]).thumbnail;
+    childVC.img = ((DishesModel *)self.searchData[indexPath.row]).img;
+    childVC.titleStr = ((DishesModel *)self.searchData[indexPath.row]).name;
+    childVC.method = ((DishesModel *)self.searchData[indexPath.row]).method;
+    childVC.name = ((DishesModel *)self.searchData[indexPath.row]).title;
+    childVC.ingredients = ((DishesModel *)self.searchData[indexPath.row]).ingredients;
+    childVC.sumary = ((DishesModel *)self.searchData[indexPath.row]).sumary;
+    childVC.menuId = ((DishesModel *)self.searchData[indexPath.row]).menuId;
+    
+    //调整不被虚化的范围，按压的那个cell不被虚化（轻轻按压时周边会被虚化，再少用力展示预览，再加力跳页至设定界面）
+    CGRect rect = CGRectMake(0, 0, self.view.frame.size.width,40);
+    previewingContext.sourceRect = rect;
+    
+    
+    //返回预览界面
+    return childVC;
+}
+//pop（按用点力进入）
+- (void)previewingContext:(id <UIViewControllerPreviewing>)previewingContext commitViewController:(UIViewController *)viewControllerToCommit {
+    
+    //[self.view addSubview: viewControllerToCommit.view];
+    //[self showViewController:viewControllerToCommit sender:self];
+    [self presentViewController:viewControllerToCommit animated:YES completion:^{
+        
+    }];
+}
+
+
+#pragma mark - keyboard 键盘弹出视图模糊
+- (void)popKeyBoard:(NSNotification *)notification
+{
+    [UIView animateWithDuration:.3 animations:^{
+        self.visualEffectView.alpha = 1;
+    }];
 }
 
 /*

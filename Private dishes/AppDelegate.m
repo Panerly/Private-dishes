@@ -52,6 +52,17 @@
                                           alpha:1.0];
     [self.window setTintColor:tintColor];
     [self.window setRootViewController:drawerController];
+    
+    
+    NSString *doc = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) lastObject];;
+    NSString *fileName = [doc stringByAppendingPathComponent:@"dishes.sqlite"];
+    FMDatabase *db = [FMDatabase databaseWithPath:fileName];
+    if ([db open]) {
+        
+        [db executeUpdate:@"create table if not exists dishesTable (id integer primary key autoincrement, name text null,  img text null, menuId text null, titleStr text null);"];
+        [db close];
+    }
+    
     return YES;
 }
 

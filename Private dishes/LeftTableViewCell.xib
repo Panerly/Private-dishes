@@ -33,10 +33,10 @@
                             <constraint firstAttribute="height" constant="80" id="MBm-YR-wKb"/>
                         </constraints>
                     </imageView>
-                    <label opaque="NO" userInteractionEnabled="NO" contentMode="TopLeft" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="好爱那个女人过哦啊给你人" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" minimumScaleFactor="0.5" translatesAutoresizingMaskIntoConstraints="NO" id="lgX-iB-pZU">
-                        <rect key="frame" x="148" y="11.5" width="209" height="120"/>
+                    <label opaque="NO" userInteractionEnabled="NO" contentMode="TopLeft" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="布啦布啦啦布啦布啦啦布啦布啦啦布啦布啦啦布啦布啦啦布啦布啦啦" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" minimumScaleFactor="0.5" translatesAutoresizingMaskIntoConstraints="NO" id="lgX-iB-pZU">
+                        <rect key="frame" x="148" y="31.5" width="209" height="80"/>
                         <constraints>
-                            <constraint firstAttribute="height" constant="120" id="Z0a-GO-Hmo"/>
+                            <constraint firstAttribute="height" constant="80" id="Z0a-GO-Hmo"/>
                         </constraints>
                         <fontDescription key="fontDescription" type="italicSystem" pointSize="17"/>
                         <color key="textColor" red="0.60000002384185791" green="0.40000000596046448" blue="0.20000000298023224" alpha="1" colorSpace="calibratedRGB"/>
@@ -57,6 +57,7 @@
             </tableViewCellContentView>
             <connections>
                 <outlet property="imgView" destination="Qsq-Rb-oxp" id="ddJ-jH-4SN"/>
+                <outlet property="shadowView" destination="aRj-km-6Vz" id="xMi-Dd-XWt"/>
                 <outlet property="title" destination="lgX-iB-pZU" id="k9x-Ue-45y"/>
             </connections>
             <point key="canvasLocation" x="-15" y="-74.5"/>

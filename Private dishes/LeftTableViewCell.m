@@ -18,7 +18,12 @@
 - (void)setLeftModel:(LeftViewModel *)leftModel {
     
     //1.图片
-    [self.imgView setImage:leftModel.thumbnail];
+    if (!leftModel.thumbnail) {
+        
+        self.shadowView.hidden = YES;
+    }
+    [self.imgView setImage:leftModel.thumbnail?leftModel.thumbnail:[UIImage imageNamed:@"losts"]];
+
     
     //2.菜名
     self.title.text = leftModel.title;

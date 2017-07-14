@@ -16,6 +16,8 @@
 
 #import "LEECoolButton.h"
 
+#import "DishesViewController.h"
+
 
 @interface DishesDetailVC ()
 {
@@ -84,6 +86,7 @@
     }
     
     [self initTitleView];
+    
 }
 
 - (void)viewDidAppear:(BOOL)animated {
@@ -182,6 +185,8 @@
 }
 
 
+#pragma mark - setupTextView 布置UI
+
 - (void)setupTextView
 {
     NSMutableAttributedString *string = [NSMutableAttributedString new];
@@ -256,7 +261,7 @@
     
     
     {
-        NSMutableAttributedString *one = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"\n\n食材：\n%@\n",self.ingredients]];
+        NSMutableAttributedString *one = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"\n\n%@\n",self.ingredients]];
         one.yy_font = [UIFont boldSystemFontOfSize:18];
         one.yy_color = [UIColor redColor];
         YYTextShadow *shadow = [YYTextShadow new];
@@ -377,10 +382,10 @@
         highlightBorder.strokeColor = sumaryString.yy_color;
         highlightBorder.fillColor = sumaryString.yy_color;
         
-        YYTextHighlight *highlight = [YYTextHighlight new];
-        [highlight setColor:[UIColor whiteColor]];
-        [highlight setBackgroundBorder:highlightBorder];
-        [sumaryString yy_setTextHighlight:highlight range:sumaryString.yy_rangeOfAll];
+//        YYTextHighlight *highlight = [YYTextHighlight new];
+//        [highlight setColor:[UIColor whiteColor]];
+//        [highlight setBackgroundBorder:highlightBorder];
+//        [sumaryString yy_setTextHighlight:highlight range:sumaryString.yy_rangeOfAll];
         [string appendAttributedString:[self padding]];
         [string appendAttributedString:sumaryString];
         [string appendAttributedString:[self padding]];
@@ -700,6 +705,28 @@
     
     [self setupTextView];
 }
+
+
+
+//添加预览界面的ActionSheet
+-(NSArray<id<UIPreviewActionItem>> *)previewActionItems
+{
+    
+    UIPreviewAction * collectAction = [UIPreviewAction actionWithTitle:@"collect " style:0 handler:^(UIPreviewAction * _Nonnull action, UIViewController * _Nonnull previewViewController) {
+        
+        [self _requestData:self.menuId];
+        [self saveToLocalDB:YES];
+        NSLog(@"click2");
+    }];
+    UIPreviewAction * closeAction = [UIPreviewAction actionWithTitle:@"close" style:0 handler:^(UIPreviewAction * _Nonnull action, UIViewController * _Nonnull previewViewController) {
+        
+        NSLog(@"click3");
+    }];
+    
+    NSArray * actions = @[collectAction,closeAction];
+    return actions;
+}
+
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];

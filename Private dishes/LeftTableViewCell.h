@@ -14,6 +14,7 @@
 @property (weak, nonatomic) IBOutlet UIImageView *imgView;
 
 @property (weak, nonatomic) IBOutlet UILabel *title;
+@property (weak, nonatomic) IBOutlet UIImageView *shadowView;
 
 @property (nonatomic, strong) LeftViewModel *leftModel;
 
