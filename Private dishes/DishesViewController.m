@@ -19,11 +19,16 @@
 #import "UIViewController+MMDrawerController.h"
 #import "HyRoundMenuView.h"
 #import <AudioToolbox/AudioToolbox.h>
+#import "DishesWebView.h"
+#import "XRCarouselView.h"
+#import "SDCycleScrollView.h"
+
 
 static NSString *const DishCellIdentifier = @"dishesCellIdentifier";
 // 音频文件的ID
 static SystemSoundID shake_sound_male_id = 0;
 
+static NSString *headerViewIdentifier = @"hederview";
 
 @interface DishesViewController ()
 <
@@ -36,8 +41,6 @@ UIViewControllerPreviewingDelegate
 >
 {
     NSURLSessionTask *task;
-    // 是否搜索变量
-    bool isSearch;
     UIImageView *loading;
     UISearchBar *customSearchBar;
     NSString *totalCount;
@@ -59,6 +62,8 @@ UIViewControllerPreviewingDelegate
 
 @property (nonatomic, strong) NSMutableArray *data;
 
+@property (nonatomic, strong) SDCycleScrollView *cycleScrollView;
+
 @end
 
 @implementation DishesViewController
@@ -74,6 +79,9 @@ UIViewControllerPreviewingDelegate
     [super viewDidLoad];
     
     [self initRightBarItem];
+    
+    [self initCarouseView];
+
     
     [self setUpLayout];
     
@@ -92,6 +100,23 @@ UIViewControllerPreviewingDelegate
     }
     
     [self setupEffectView];
+}
+
+//轮播图
+- (void)initCarouseView {
+    
+    NSArray *arr = @[
+                     [UIImage imageNamed:@"002.jpg"],
+                     [UIImage imageNamed:@"001.jpg"],
+                     @"003.jpg",
+                     gifImageNamed(@"004.gif")
+                     ];
+    _cycleScrollView = [SDCycleScrollView cycleScrollViewWithFrame:CGRectMake(0, 0, PanScreenWidth, 180) shouldInfiniteLoop:YES imageNamesGroup:arr];
+    //_cycleScrollView.delegate = self;
+    _cycleScrollView.pageControlStyle = SDCycleScrollViewPageContolStyleAnimated;
+    //[demoContainerView addSubview:cycleScrollView];
+    _cycleScrollView.scrollDirection = UICollectionViewScrollDirectionVertical;
+    self.automaticallyAdjustsScrollViewInsets = NO;
 }
 
 - (void)setupEffectView{
@@ -177,6 +202,8 @@ UIViewControllerPreviewingDelegate
     // 滚动方向
     _flowLayout.scrollDirection = UICollectionViewScrollDirectionVertical;
     
+     _flowLayout.headerReferenceSize=CGSizeMake(self.view.frame.size.width, 180); //设置collectionView头视图的大小
+    
     // 创建CollectionView
     UICollectionView *collectionView = [[UICollectionView alloc] initWithFrame:CGRectMake(0, 64, PanScreenWidth, PanScreenHeight-64) collectionViewLayout:_flowLayout];
     collectionView.backgroundColor = [UIColor clearColor];
@@ -189,8 +216,10 @@ UIViewControllerPreviewingDelegate
     [self.view addSubview:collectionView];
     self.collectionView = collectionView;
     
-    // 默认没有开始搜索
-    isSearch = NO;
+    //注册头视图
+    [collectionView registerClass:[UICollectionReusableView class] forSupplementaryViewOfKind:UICollectionElementKindSectionHeader withReuseIdentifier:headerViewIdentifier];
+    
+    
     
     CGRect mainViewBounds = self.navigationController.view.bounds;
     customSearchBar = [[UISearchBar alloc] initWithFrame:CGRectMake(CGRectGetWidth(mainViewBounds)/2-((CGRectGetWidth(mainViewBounds)-120)/2), CGRectGetMinY(mainViewBounds)+22, CGRectGetWidth(mainViewBounds)-120, 40)];
@@ -210,6 +239,8 @@ UIViewControllerPreviewingDelegate
     [self.view insertSubview:loading aboveSubview:self.collectionView];
     
 }
+
+
 
 NSUInteger pageNum = 30;//默认加载20条
 NSString *defaultname = @"烧烤";//默认烧烤
@@ -304,21 +335,26 @@ NSString *defaultname = @"烧烤";//默认烧烤
                     
                 }
             }else if ([[responseObject objectForKey:@"retCode"] isEqualToString:@"20201"]) {
-                UIAlertAction *confir = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
-                    
-                }];
-                UIAlertController *alertVC = [UIAlertController alertControllerWithTitle:@"提示" message:@"查询不到数据！" preferredStyle:UIAlertControllerStyleAlert];
+//                UIAlertAction *confir = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
+//                    
+//                }];
+//                UIAlertController *alertVC = [UIAlertController alertControllerWithTitle:@"提示" message:@"查询不到数据！" preferredStyle:UIAlertControllerStyleAlert];
+//                
+//                [alertVC addAction:confir];
+//                
+//                [weakSelf presentViewController:alertVC animated:YES completion:^{
+//                    
+//                }];
                 
-                [alertVC addAction:confir];
+                UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:@"查无结果" message:@"是否查看中国菜谱网数据？" delegate:self cancelButtonTitle:@"取消" otherButtonTitles:@"确定", nil];
                 
-                [weakSelf presentViewController:alertVC animated:YES completion:^{
-                    
-                }];
+                [alertView show];
             }
             [weakSelf.collectionView reloadSections:[NSIndexSet indexSetWithIndex:0]];
         }
         
         if (weakSelf.searchData.count<1) {
+            
             [weakSelf showMessage:@"暂无此种美食分类数据"];
         }else {
             [weakSelf showMessage:@"美食加载完成喽 ^o^"];
@@ -393,10 +429,10 @@ NSString *defaultname = @"烧烤";//默认烧烤
         [_popover dismiss];
     }
     _titlesArr = @[
-                   @"按菜品",@"荤菜",@"素菜",@"汤粥",@"西点",@"主食",@"饮品",@"更多菜品",
-                   @"按工艺",@"红烧",@"炒",@"煎",@"炸",@"焖",@"炖",@"更多工艺",
-                   @"按菜系",@"鲁菜",@"川菜",@"粤菜",@"闽菜",@"浙菜",@"湘菜",@"更多菜系",
-                   @"按人群",@"孕妇",@"婴幼",@"儿童",@"懒人",@"宵夜",@"素食",@"更多人群",
+                   @"按菜品",@"荤菜",@"素菜",@"汤粥",@"西点",@"主食",@"饮品",@"小吃",
+                   @"按工艺",@"红烧",@"炒",@"煎",@"炸",@"焖",@"炖",@"烤",
+                   @"按菜系",@"鲁菜",@"川菜",@"粤菜",@"闽菜",@"浙菜",@"湘菜",@"京菜",
+                   @"按人群",@"孕妇",@"婴幼",@"儿童",@"懒人",@"宵夜",@"素食",@"茶",
                    @"按功能",@"减肥",@"便秘",@"养胃",@"滋阴",@"补阳",@"月经",@"美容",@"养生",@"贫血",@"润肺"
                    ];
     
@@ -405,6 +441,20 @@ NSString *defaultname = @"烧烤";//默认烧烤
                                           titles:_titlesArr
                                         delegate:self];
     
+}
+
+#pragma mark - UIAlertViewDelegate
+- (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex {
+    
+    if (buttonIndex == 1) {
+
+        self.visualEffectView.alpha = 0;
+        DishesWebView *webView = [[DishesWebView alloc] init];
+        webView.name = defaultname;
+        [self presentViewController:webView animated:YES completion:^{
+            
+        }];
+    }
 }
 #pragma mark - <JJPopoverViewDelegate>
 
@@ -419,6 +469,29 @@ NSString *defaultname = @"烧烤";//默认烧烤
 }
 
 #pragma mark - <UICollectionViewDataSource>
+
+//  返回头视图
+- (UICollectionReusableView *)collectionView:(UICollectionView *)collectionView viewForSupplementaryElementOfKind:(NSString *)kind atIndexPath:(NSIndexPath *)indexPath
+{
+    //如果是头视图
+    if ([kind isEqualToString:UICollectionElementKindSectionHeader]) {
+        UICollectionReusableView *header=[collectionView dequeueReusableSupplementaryViewOfKind:kind withReuseIdentifier:headerViewIdentifier forIndexPath:indexPath];
+//        //添加头视图的内容
+        [self initCarouseView];
+//        //头视图添加view
+//        [header addSubview:_carouselView];
+        
+        [header addSubview:_cycleScrollView];
+        
+        return header;
+    }
+    //如果底部视图
+    //    if([kind isEqualToString:UICollectionElementKindSectionFooter]){
+    //
+    //    }
+    return nil;
+}
+
 - (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section
 {
     
@@ -473,9 +546,14 @@ NSString *defaultname = @"烧烤";//默认烧烤
 // UISearchBarDelegate定义的方法，用户单击取消按钮时激发该方法
 - (void)searchBarCancelButtonClicked:(UISearchBar *)searchBar
 {
-    NSLog(@"----searchBarCancelButtonClicked------");
-    // 取消搜索状态
-    isSearch = NO;
+    [customSearchBar resignFirstResponder];
+    
+    [UIView animateWithDuration:.3 animations:^{
+        self.visualEffectView.alpha = 0;
+    }];
+    
+    customSearchBar.showsCancelButton = NO;
+    
     [self.collectionView reloadData];
 }
 
@@ -491,7 +569,6 @@ NSString *defaultname = @"烧烤";//默认烧烤
 // UISearchBarDelegate定义的方法，用户单击虚拟键盘上Search按键时激发该方法
 - (void)searchBarSearchButtonClicked:(UISearchBar *)searchBar
 {
-    NSLog(@"----searchBarSearchButtonClicked------");
     // 调用filterBySubstring:方法执行搜索
     [self filterBySubstring:searchBar.text];
     
@@ -503,16 +580,15 @@ NSString *defaultname = @"烧烤";//默认烧烤
         
     }];
     
+    searchBar.showsCancelButton = NO;
     // 放弃作为第一个响应者，关闭键盘
     [searchBar resignFirstResponder];
-    isSearch = NO;
 }
 
 - (void) filterBySubstring:(NSString*) subStr
 {
     NSLog(@"----filterBySubstring------");
-    // 设置为搜索状态
-    isSearch = YES;
+    
 //    // 定义搜索谓词
 //    NSPredicate* pred = [NSPredicate predicateWithFormat:
 //                         @"SELF CONTAINS[c] %@" , subStr];
@@ -546,6 +622,7 @@ NSString *defaultname = @"烧烤";//默认烧烤
     
     label.bottom = (kiOS7Later ? 64 : 0);
     [self.view addSubview:label];
+    
     [UIView animateWithDuration:0.3 animations:^{
         label.top = (kiOS7Later ? 64 : 0);
     } completion:^(BOOL finished) {
@@ -571,7 +648,7 @@ NSString *defaultname = @"烧烤";//默认烧烤
     
     AudioServicesPlaySystemSound(shake_sound_male_id);   //播放注册的声音，（此句代码，可以在本类中的任意位置调用，不限于本方法中）
     
-    //    AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);   //让手机震动
+    //AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);   //让手机震动
 }
 static HyRoundMenuModel *tempModel = nil;
 - (void)roundMenuView:(HyRoundMenuView* __nonnull)roundMenuView dragAfterModel:(HyRoundMenuModel* __nonnull)model
@@ -598,6 +675,7 @@ static HyRoundMenuModel *tempModel = nil;
     } completion:^(BOOL finished) {
         
     }];
+    customSearchBar.showsCancelButton = NO;
     [customSearchBar resignFirstResponder];
 }
 
@@ -681,6 +759,7 @@ static HyRoundMenuModel *tempModel = nil;
     [UIView animateWithDuration:.3 animations:^{
         self.visualEffectView.alpha = 1;
     }];
+    customSearchBar.showsCancelButton = YES;
 }
 
 /*

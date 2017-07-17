@@ -12,6 +12,7 @@
 #import "ZCFallLabel.h"
 #import <objc/runtime.h>
 #import "DishesDetailVC.h"
+#import "UserInfoViewController.h"
 
 @interface LeftViewController ()
 <
@@ -23,14 +24,13 @@ UITableViewDataSource
     FMDatabase *db;
     UIImageView *starView;
     ZCAnimatedLabel *label;
+    UILabel *tipsLabel;
 }
 @property (nonatomic, strong) NSMutableArray *dataArr;
 
 @property (nonatomic, strong) NSMutableArray *labelDataArr;
 
 @property (nonatomic, strong) UITableView *tableView;
-
-
 
 @end
 
@@ -49,6 +49,44 @@ UITableViewDataSource
 - (void)viewDidLoad {
     [super viewDidLoad];
 
+    
+    [self setupBG];
+    
+    self.navigationController.delegate = self;
+    
+    [self initTableView];
+    
+    label = [[ZCAnimatedLabel alloc] initWithFrame:CGRectMake(55, 90, PanScreenWidth-100-20, 100)];
+    
+    label.userInteractionEnabled = NO;
+    
+    [self.view addSubview:label];
+    
+    [self setupTipsLabel];
+    
+}
+
+- (void)setupTipsLabel {
+    
+    tipsLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, PanScreenWidth/2, PanScreenWidth-100, 100)];
+    
+    tipsLabel.userInteractionEnabled = NO;
+    
+    [self.tableView addSubview:tipsLabel];
+    
+    tipsLabel.font = [UIFont systemFontOfSize:20];
+    
+    tipsLabel.textAlignment = NSTextAlignmentLeft;
+    
+    tipsLabel.textColor = [UIColor whiteColor];
+    
+    tipsLabel.text = @"   No more collected data !";
+    
+    tipsLabel.hidden = YES;
+}
+
+- (void)setupBG{
+    
     UIImageView *bgImageView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, self.view.frame.size.width, PanScreenHeight)];
     
     [bgImageView setImage:[UIImage imageNamed:@"bg_left"]];
@@ -57,17 +95,23 @@ UITableViewDataSource
     
     [self setupStarView:bgImageView];
     
-    self.navigationController.delegate = self;
+    UIButton *btn = [[UIButton alloc] initWithFrame:CGRectMake(0, 85, PanScreenWidth - 100 - 20, 50)];
     
-    [self initTableView];
+    [btn addTarget:self action:@selector(btnAction) forControlEvents:UIControlEventTouchUpInside];
     
+    [self.view addSubview:btn];
     
-    label = [[ZCAnimatedLabel alloc] initWithFrame:CGRectMake(55, 90, PanScreenWidth-100-20, 100)];
-    [self.view addSubview:label];
-    
+    UIImageView *detailImg =[[UIImageView alloc] initWithFrame:CGRectMake(PanScreenWidth - 100 - 30, 93, 20, 20)];
+    [detailImg setImage:[UIImage imageNamed:@"detail"]];
+    [self.view addSubview:detailImg];
 }
 
-
+- (void)btnAction {
+    
+    UserInfoViewController *userInfo = [[UserInfoViewController alloc] init];
+    
+    [self.navigationController showViewController:userInfo sender:nil];
+}
 
 - (void)setupLabel {
     
@@ -187,6 +231,14 @@ UITableViewDataSource
             [self.dataArr addObject:dbModel];
             
         }
+        if (self.dataArr.count == 0) {
+            
+            tipsLabel.hidden = NO;
+            
+        }else{
+            
+            tipsLabel.hidden = YES;
+        }
         
         [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:0] withRowAnimation:UITableViewRowAnimationFade];
     
@@ -222,6 +274,7 @@ UITableViewDataSource
 }
 
 #pragma mark - UITableViewDelegate,UITableViewDataSource
+
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
     
     return 1;

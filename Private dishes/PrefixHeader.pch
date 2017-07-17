@@ -36,7 +36,9 @@
 
 #import "UIImageView+WebCache.h"
 
+#import "SCToastView.h"
 
 #import "ZCAnimatedLabel.h"
+#import "SDWebImageManager.h"
 
 #endif /* PrefixHeader_pch */
