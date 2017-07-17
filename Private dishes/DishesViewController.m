@@ -335,20 +335,20 @@ NSString *defaultname = @"烧烤";//默认烧烤
                     
                 }
             }else if ([[responseObject objectForKey:@"retCode"] isEqualToString:@"20201"]) {
-//                UIAlertAction *confir = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
-//                    
-//                }];
-//                UIAlertController *alertVC = [UIAlertController alertControllerWithTitle:@"提示" message:@"查询不到数据！" preferredStyle:UIAlertControllerStyleAlert];
-//                
-//                [alertVC addAction:confir];
-//                
-//                [weakSelf presentViewController:alertVC animated:YES completion:^{
-//                    
-//                }];
+                UIAlertAction *confir = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
+                    
+                }];
+                UIAlertController *alertVC = [UIAlertController alertControllerWithTitle:@"提示" message:@"查询不到数据！" preferredStyle:UIAlertControllerStyleAlert];
                 
-                UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:@"查无结果" message:@"是否查看中国菜谱网数据？" delegate:self cancelButtonTitle:@"取消" otherButtonTitles:@"确定", nil];
+                [alertVC addAction:confir];
                 
-                [alertView show];
+                [weakSelf presentViewController:alertVC animated:YES completion:^{
+                    
+                }];
+                
+//                UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:@"查无结果" message:@"是否查看中国菜谱网数据？" delegate:self cancelButtonTitle:@"取消" otherButtonTitles:@"确定", nil];
+//                
+//                [alertView show];
             }
             [weakSelf.collectionView reloadSections:[NSIndexSet indexSetWithIndex:0]];
         }
